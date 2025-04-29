@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chicago "L" train ridership drop 2019-2020 </title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>#map { height: 600px; width: 100%; }</style>
+</head>
+<body>
+    <div id="map"></div>
+    <a>Chicago "L" train ridership drop 2019-2020 </a>
+    <script>
+        // Debug logger with timestamps
+        const log = (...args) => console.log(`[${new Date().toISOString()}]`, ...args);
+
+        // 1. Map Initialization
+        const initMap = () => {
+            log("Initializing map...");
+            const map = L.map('map').setView([41.8, -87.6], 11);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            log("Map ready");
+            return map;
+        };
+
+        const parseCoords = (str) => {
+        // Handle edge cases: null/undefined/empty strings
+        if (str == null || str.trim() === "") return 0;
+        
+        // Remove any non-numeric characters (except '-' and '.')
+        const cleaned = str.replace(/[^\d.-]/g, '');
+        
+        // Parse to number (returns NaN if invalid)
+        return parseFloat(cleaned);
+        }
+        // 3. Circle Creator
+        const createCircle = (map, lat, lng,size,station_name,ridership_2019,ridership_2020) => {
+            log(`Creating circle at (${lat}, ${lng}) with popup:`);
+            const circle = L.circle([lat, lng], {
+            color: 'blue',
+            fillColor: 'blue',
+            fillOpacity: 0.1,
+            radius: size*500
+            }).addTo(map).bindPopup(`
+            <h4>${station_name}</h4>
+            <p>2019 ridership: ${ridership_2019}</p>
+            <p>2020 ridership: ${ridership_2020}</p>
+            <p>percentage drop: ${size}</p>
+        `);
+        };
+        
+
+        // 4. CSV Processor
+        const processCSV = (csvData) => {
+            log(`Processing CSV data (${csvData.length} rows)`);
+            log("Sample row:", csvData[0]);
+            
+            csvData.filter(row => row).forEach((row, i) => {
+                log(`\nProcessing row ${i}:`, row);
+                try {
+                    const row_lat = parseCoords(row.lat);
+                    const row_lng = parseCoords(row.long);
+                    const ridership_2019 = parseCoords(row.long);
+                    const ridership_2020 = parseCoords(row.long);
+                    const drop_percentage =parseCoords(row.F_2019_2020__2019);
+                    const station_name=row.STATION_DESCRIPTIVE_NAME;
+                    createCircle(map, row_lat, row_lng,drop_percentage,station_name,ridership_2019,ridership_2020);
+                } catch (e) {
+                    log(`Error in row ${i}:`, e.message);
+                }
+            });
+        };
+
+        // Execute
+        log("Script started");
+        const map = initMap();
+        
+        Papa.parse('attribute_table.csv', {
+            download: true,
+            header: true,
+            complete: (results) => {
+                log("CSV loaded successfully");
+                processCSV(results.data);
+            },
+            error: (err) => {
+                log("CSV load failed:", err);
+            }
+        });
+    </script>
+</body>
+</html>
