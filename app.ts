@@ -1,80 +1,79 @@
 const path = require('path');
 const express = require('express');
+const fs = require('fs');
+const https = require('https');
 const helmet = require('helmet');
 
 // Configuration
-const PORT = process.env.PORT || 3000; // Always use 3000 (Nginx will proxy to this)
+const HTTP_PORT = 80;
+const HTTPS_PORT = 443;
+const DEV_PORT = 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
-const isProduction = process.env.NODE_ENV === 'production';
+const isInternetMode = process.argv.includes('--internet');
 
 const app = express();
 
-// ======================
 // Security Middleware
-// ======================
 app.use(helmet());
 
-// Trust proxy (since Nginx will be forwarding requests)
-app.set('trust proxy', true);
+// Static files
+app.use(express.static(PUBLIC_DIR));
 
-// Static files with cache control
-app.use(express.static(PUBLIC_DIR, {
-  setHeaders: (res, filePath) => {
-    if (filePath.endsWith('.html')) {
-      res.setHeader('Cache-Control', 'no-store');
-    }
-    // Security headers are now handled by Nginx
-  }
-}));
-
-// ======================
-// Visitor Logging
-// ======================
+// Visitor logging
 app.use((req, res, next) => {
   const protocol = req.secure ? 'HTTPS' : 'HTTP';
-  const clientIp = req.headers['x-forwarded-for']?.split(',')[0] || req.ip;
-  
   console.log(
-    `\x1b[36m[${new Date().toISOString()}]\x1b[0m`,
-    `\x1b[33m${clientIp} (${protocol})\x1b[0m`,
-    `\x1b[32m${req.method} ${req.url}\x1b[0m`
+    `[${new Date().toISOString()}]`,
+    `${req.ip} (${protocol})`,
+    `${req.method} ${req.url}`
   );
   next();
 });
 
-// ======================
-// Route Handlers
-// ======================
-const serveFile = (fileName) => (req, res, next) => {
-  res.sendFile(path.join(PUBLIC_DIR, fileName), (err) => {
-    if (err) next(err);
-  });
-};
+// Routes
+app.get('/', (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
+});
 
-app.get('/', serveFile('index.html'));
-app.get('/leaflet_demo_map', serveFile('leaflet_demo.html'));
+app.get('/leaflet_demo_map', (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'leaflet_demo.html'));
+});
 
-// ======================
-// Error Handling
-// ======================
+// Error handling
 app.use((req, res) => {
   res.status(404).sendFile(path.join(PUBLIC_DIR, '404.html'));
 });
 
 app.use((err, req, res, next) => {
-  console.error('\x1b[31mError:\x1b[0m', err);
+  console.error('Server error:', err);
   res.status(500).sendFile(path.join(PUBLIC_DIR, '500.html'));
 });
 
-// ======================
-// Server Startup
-// ======================
-app.listen(PORT, () => {
-    if (isProduction) {
-    console.log(`\x1b[1mServer running in PRODUCTION mode\x1b[0m`);
-    console.log(`Access via Nginx at:\n- \x1b[34mhttps://yuchenh9.dev\x1b[0m`);
-  } else {
-    console.log(`\x1b[1mServer running in DEVELOPMENT mode\x1b[0m`);
-    console.log(`Access at:\n- \x1b[34mhttp://localhost:${PORT}\x1b[0m`);
-  }
-});
+// Server startup
+if (isInternetMode) {
+  // HTTPS setup
+  const sslOptions = {
+    key: fs.readFileSync('/etc/letsencrypt/live/yuchenh9.dev/privkey.pem'),
+    cert: fs.readFileSync('/etc/letsencrypt/live/yuchenh9.dev/fullchain.pem')
+  };
+
+  const httpsServer = https.createServer(sslOptions, app);
+  
+  // Redirect HTTP to HTTPS
+  express()
+    .use((req, res) => res.redirect(`https://${req.headers.host}${req.url}`))
+    .listen(HTTP_PORT, '0.0.0.0');
+
+  httpsServer.listen(HTTPS_PORT, '0.0.0.0', () => {
+    console.log(`\n\x1b[1mSERVER RUNNING IN INTERNET MODE\x1b[0m`);
+    console.log(`HTTP -> HTTPS redirect active on port 80`);
+    console.log(`Secure server running on port 443`);
+    console.log(`Access your site at:\n\x1b[36mhttps://yuchenh9.dev\x1b[0m\n`);
+  });
+} else {
+  // Development mode
+  app.listen(DEV_PORT, 'localhost', () => {
+    console.log(`\n\x1b[1mSERVER RUNNING IN DEVELOPMENT MODE\x1b[0m`);
+    console.log(`Access your site at:\n\x1b[36mhttp://localhost:${DEV_PORT}\x1b[0m\n`);
+  });
+}
