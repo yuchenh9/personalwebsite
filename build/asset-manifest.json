@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/riveroflife/static/css/main.f064fec6.css",
+    "main.js": "/riveroflife/static/js/main.b9a0f37f.js",
+    "static/js/453.ce6a9365.chunk.js": "/riveroflife/static/js/453.ce6a9365.chunk.js",
+    "index.html": "/riveroflife/index.html",
+    "main.f064fec6.css.map": "/riveroflife/static/css/main.f064fec6.css.map",
+    "main.b9a0f37f.js.map": "/riveroflife/static/js/main.b9a0f37f.js.map",
+    "453.ce6a9365.chunk.js.map": "/riveroflife/static/js/453.ce6a9365.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.f064fec6.css",
+    "static/js/main.b9a0f37f.js"
+  ]
+}

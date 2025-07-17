@@ -13,36 +13,52 @@ const isInternetMode = process.argv.includes('--internet');
 
 const app = express();
 
-// Security Middleware
-app.use(helmet());
+// Security Middleware with custom CSP
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        connectSrc: ["'self'", "https://api.rss2json.com"],
+        frameSrc: ["'self'", "https://www.youtube.com", "https://www.youtube-nocookie.com"],
+        imgSrc: [
+          "'self'",
+          "data:",
+          "https://i.ytimg.com", // YouTube thumbnails
+          // Add other domains as needed
+        ],
+        // Optionally, add scriptSrc, styleSrc, etc. as needed
+      },
+    },
+  })
+);
 
-// Static files
+// Serve original homepage and static files at /
 app.use(express.static(PUBLIC_DIR));
 
-// Visitor logging
-app.use((req, res, next) => {
-  const protocol = req.secure ? 'HTTPS' : 'HTTP';
-  console.log(
-    `[${new Date().toISOString()}]`,
-    `${req.ip} (${protocol})`,
-    `${req.method} ${req.url}`
-  );
-  next();
+const REACT_BUILD_DIR = path.join(__dirname, 'build'); // or wherever you put the build folder
+// Serve React app at /riveroflife
+app.use('/riveroflife', express.static(REACT_BUILD_DIR));
+
+// For SPA routing: serve index.html for any /riveroflife/* route
+app.get('/riveroflife/*', (req, res) => {
+  res.sendFile(path.join(REACT_BUILD_DIR, 'index.html'));
 });
 
-// Routes
+// Route for original homepage
 app.get('/', (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
 });
 
+// Routes
 app.get('/leaflet_demo_map', (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'leaflet_demo.html'));
 });
-
 // Error handling
 app.use((req, res) => {
   res.status(404).sendFile(path.join(PUBLIC_DIR, '404.html'));
 });
+
 
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
@@ -58,7 +74,7 @@ if (isInternetMode) {
   };
 
   const httpsServer = https.createServer(sslOptions, app);
-  
+
   // Redirect HTTP to HTTPS
   express()
     .use((req, res) => res.redirect(`https://${req.headers.host}${req.url}`))
