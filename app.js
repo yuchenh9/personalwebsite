@@ -15,10 +15,9 @@ const app = express();
 
 // Domains configuration
 const PERSONAL_WEBSITE_DOMAINS = [
-  'yuchenh9.dev',
-  'www.yuchenh9.dev',
+  'yuchen.lol',
   'localhost:3001',  // for development - different port from church app
-  'yuchen.localhost' // alternative local domain
+
 ];
 ///root
 ///Users/yuchenhuang/Downloads/riveroflifecu
