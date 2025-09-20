@@ -54,8 +54,11 @@ if (isInternetMode) {
   });
 } else {
   // Development mode
-  app.listen(DEV_PORT, 'localhost', () => {
+  app.listen(DEV_PORT, '0.0.0.0', () => {
     console.log(`\x1b[1mPERSONAL WEBSITE - DEVELOPMENT MODE\x1b[0m`);
-    console.log(`Access:\n- \x1b[34mhttp://localhost:${DEV_PORT}\x1b[0m`);
+    console.log(`Server running on all network interfaces:`);
+    console.log(`- Local: \x1b[34mhttp://localhost:${DEV_PORT}\x1b[0m`);
+    console.log(`- Network: \x1b[34mhttp://[YOUR_LOCAL_IP]:${DEV_PORT}\x1b[0m`);
+    console.log(`\nTo find your local IP address, run: \x1b[33mifconfig | grep "inet "\x1b[0m`);
   });
 }
